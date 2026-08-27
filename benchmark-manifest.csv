@@ -1,4 +1,3 @@
-# Expected publication benchmark registry, derived from plan_tables.md section 2.
 construction,variant,field,t,round_set,rounds
 gmimc,,bls12_381,3,single,228
 gmimc,,bls12_381,4,single,231
