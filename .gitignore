@@ -1,0 +1,12 @@
+/target/
+__pycache__/
+*.py[cod]
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+results.csv.partial
+benchmark-run.log
+benchmark-run.pid

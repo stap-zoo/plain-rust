@@ -1,0 +1,30 @@
+[package]
+name = "sok-zk-friendly-hash-functions"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "Plain_implementations/lib.rs"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
+[dependencies]
+ark-bls12-381 = "0.4"
+ark-bn254 = "0.4"
+ark-ff = "0.4"
+lazy_static = "1.4"
+num-bigint = "0.4"
+num-traits = "0.2"
+p3-baby-bear = "0.3"
+p3-field = "0.3"
+p3-goldilocks = "0.3"
+p3-koala-bear = "0.3"
+p3-mersenne-31 = "0.3"
+sha3 = "0.10"
+sha2 = { version = "0.10", features = ["compress"] }
+keccak = "0.1"
+blake3 = "1"
+blake2 = "0.10.6"

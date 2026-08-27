@@ -1,0 +1,62 @@
+# Round-Number Overview
+
+## Caption
+
+Each cell gives the **most recent** round number, with the **original** (designers') round
+number in parentheses in case of an update. GMiMCHash2's parenthesis gives the
+chosen α. For the HADES-style designs the entry is written
+`R_F + R_P` (full + partial rounds). Where a round number depends on the power-map degree
+$\alpha$, we fixed: **BLS12-381 / BN254 → α = 5, Goldilocks → α = 7,
+BabyBear → α = 7, KoalaBear → α = 3, Mersenne31 → α = 5**. 
+Target security level is 128 bits, when used in Sponge mode.
+
+## 256-bit and 64-bit prime fields
+
+| Construction | BLS12-381 $t=3$ | BLS12-381 $t=4$ | BN254 $t=3$ | BN254 $t=4$ | Goldilocks $t=8$ | Goldilocks $t=12$ |
+|---|---|---|---|---|---|---|
+| GMiMCHash | 228 | 231 | 228 | 231 | 68 | 93 |
+| GMiMCHash2 ‡ | 63 (α=8) | 64 (α=8) | 63 (α=8) | 64 (α=8) | 88 (α=4) | 96 (α=4) |
+| Poseidon | 8 + 56 | 8 + 56 | 8 + 56 | 8 + 56 | 8 + 22 | 8 + 22 |
+| Poseidon2 | 8 + 56 | 8 + 56 | 8 + 56 | 8 + 56 | 8 + 22 | 8 + 22 |
+| Neptune | — | 6 + 68 | — | 6 + 68 | 6 + 38 | 6 + 42 |
+| Rescue-Prime | 16 (14) | 13 (11) | 16 (14) | 13 (11) | 8 | 8 |
+| Anemoi | — | 20 (14) | — | 20 (14) | 11 | 10 |
+| Griffin | 20 (14) | 20 (11) | 20 (14) | 20 (11) | 8 | 8 |
+| Arion | 11 | 10 | 11 | 10 | — | — |
+| Grendel | — | 23 (12) | — | 23 (12) | — | — |
+| Reinforced Concrete | 7 | — | 7 | — | — | — |
+| Skyscraper | — | 18 | — | 18 | — | — |
+| Monolith | — | — | — | — | 6 | 6 |
+| Polocolo | 6 | 5 | 6 | 5 | — | — |
+| XHash8/12 | — | — | — | — | — | 6 |
+| Tip4' | — | — | — | — | — | 5 |
+| pSquare-Hash | — | — | — | — | — | — |
+
+## 31-bit prime fields
+
+| Construction | Mersenne31 $t=16$ | Mersenne31 $t=24$ | KoalaBear $t=16$ | KoalaBear $t=24$ | BabyBear $t=16$ | BabyBear $t=24$ |
+|---|---|---|---|---|---|---|
+| GMiMCHash | 158 | 335 | 158 | 335 | 158 | 335 |
+| GMiMCHash2 ‡ | 176 (any α) | 264 (any α) | 176 (any α) | 264 (any α) | 176 (any α) | 264 (any α) |
+| Poseidon | 8 + 14 | 8 + 22 | 8 + 20 | 8 + 23 | 8 + 13 | 8 + 21 |
+| Poseidon2 | 8 + 14 | 8 + 22 | 8 + 20 | 8 + 23 | 8 + 13 | 8 + 21 |
+| Neptune | — | — | — | — | — | — |
+| Rescue-Prime | 8 | 8 | 8 | 8 | 8 | 8 |
+| Anemoi | 10 | 9 | 10 | 9 | 9 | 9 |
+| Griffin | — | — | — | — | — | — |
+| Arion | — | — | — | — | — | — |
+| Grendel | — | — | — | — | — | — |
+| Reinforced Concrete | — | — | — | — | — | — |
+| Skyscraper | — | — | — | — | — | — |
+| Monolith | 6 | 6 | 6 | 6 | 6 | 6 |
+| Polocolo | — | — | — | — | — | — |
+| XHash8/12 | — | 6 | — | — | — | — |
+| Tip4' | — | — | — | — | — | — |
+| pSquare-Hash | 52 | 52 | 52 | 52 | 52 | 52 |
+
+## Notes
+
+- **‡ GMiMCHash2** is tabulated only for $\alpha \in \{2, 4, 8\}$, so the global α-policy does
+  not apply. The values shown are the entries the source table marks in bold as the best
+  plain/proof-system tradeoff: α = 8 at 256 bits, α = 4 at 64 bits. The 31-bit entries are
+  α-independent in the table (as are those of GMiMCHash).
