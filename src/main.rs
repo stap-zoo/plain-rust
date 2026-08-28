@@ -2,7 +2,7 @@
 
 use sok_zk_friendly_hash_functions::anemoi::{anemoi::Anemoi, instances::*};
 use sok_zk_friendly_hash_functions::arion::{arion::Arion, instances::*};
-use sok_zk_friendly_hash_functions::fields::{FieldElement, PrimeFieldWords};
+use sok_zk_friendly_hash_functions::fields::{FieldElement, PrimeFieldMontgomery};
 use sok_zk_friendly_hash_functions::gmimc::{gmimc::Gmimc, instances::*};
 use sok_zk_friendly_hash_functions::gmimc2::{gmimc2::Gmimc2, instances::*};
 use sok_zk_friendly_hash_functions::grendel::{grendel::Grendel, instances::*};
@@ -36,7 +36,7 @@ use std::time::{Duration, Instant};
 
 const CALIBRATION_FLOOR: usize = 64;
 const CALIBRATION_TARGET: Duration = Duration::from_millis(200);
-const REPETITIONS: usize = 5;
+const REPETITIONS: usize = 100;
 const EXPECTED_MANIFEST: &str = include_str!("../benchmark-manifest.csv");
 
 struct Case {
@@ -1581,12 +1581,11 @@ fn add_type3_cases(cases: &mut Vec<Case>) {
     );
 }
 
-fn add_skyscraper<F: PrimeFieldWords + 'static>(
+fn add_skyscraper<F: PrimeFieldMontgomery + 'static>(
     cases: &mut Vec<Case>,
     field: &'static str,
-    permutation: Skyscraper<F>,
+    permutation: Skyscraper<F, 2>,
 ) {
-    assert_eq!(permutation.get_n(), 2);
     add_permutation(
         cases,
         ("skyscraper", "", field, 4, "single", "18"),

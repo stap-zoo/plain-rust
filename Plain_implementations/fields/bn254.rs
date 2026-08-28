@@ -1,6 +1,6 @@
-use super::{FieldElement, PrimeField, PrimeFieldExt, PrimeFieldWords};
+use super::{FieldElement, PrimeField, PrimeFieldExt, PrimeFieldMontgomery, PrimeFieldWords};
 use ark_bn254::Fr as ArkBn254;
-use ark_ff::PrimeField as ArkPrimeField;
+use ark_ff::{BigInt, BigInteger, PrimeField as ArkPrimeField};
 use num_bigint::BigUint;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -69,5 +69,77 @@ impl PrimeFieldWords for Bn254 {
             out[i] = *limb;
         }
         out
+    }
+
+    fn from_words_le(words: [u64; 4]) -> Self {
+        let mut bytes = [0u8; 32];
+        for (chunk, word) in bytes.chunks_exact_mut(8).zip(words.iter()) {
+            chunk.copy_from_slice(&word.to_le_bytes());
+        }
+        Self(ArkBn254::from_le_bytes_mod_order(&bytes))
+    }
+}
+
+impl PrimeFieldMontgomery for Bn254 {
+    fn into_montgomery_raw(self) -> Self {
+        Self(ArkBn254::new_unchecked(self.0.into_bigint()))
+    }
+
+    fn from_montgomery_raw(self) -> Self {
+        Self(ArkBn254::new(self.0 .0))
+    }
+
+    fn raw_words(&self) -> [u64; 4] {
+        (self.0 .0).0
+    }
+
+    fn from_reduced_raw_words(words: [u64; 4]) -> Self {
+        let mut value = BigInt(words);
+        let modulus = <ArkBn254 as ArkPrimeField>::MODULUS;
+        while value >= modulus {
+            value.sub_with_borrow(&modulus);
+        }
+        Self(ArkBn254::new_unchecked(value))
+    }
+}
+
+#[cfg(test)]
+mod montgomery_raw_tests {
+    use super::*;
+    use num_traits::One;
+
+    #[test]
+    fn raw_square_applies_exactly_one_r_inverse() {
+        let x = Bn254::from_u64(5);
+        let mut x_raw = x.into_montgomery_raw();
+        x_raw.square();
+        let actual = x_raw.from_montgomery_raw();
+
+        let modulus = Bn254::modulus();
+        let machine_bits = (modulus.bits() as usize).div_ceil(64) * 64;
+        let mont_r = Bn254::from_biguint(&(BigUint::one() << machine_bits));
+        let mont_r_inv = mont_r.pow_words_le(&(modulus - BigUint::from(2u64)).to_u64_digits());
+
+        let mut expected = Bn254::from_u64(25);
+        expected.mul_assign(&mont_r_inv);
+
+        assert_eq!(actual, expected, "x_raw.square().from_montgomery_raw() should equal x^2 * R^-1");
+        assert_ne!(actual, Bn254::from_u64(25), "sanity: the raw trick must NOT equal the plain square");
+    }
+
+    #[test]
+    fn raw_then_normal_round_trip_is_identity() {
+        let x = Bn254::from_u64(1234567);
+        let round_tripped = x.into_montgomery_raw().from_montgomery_raw();
+        assert_eq!(x, round_tripped);
+    }
+
+    #[test]
+    fn raw_words_reduction_matches_from_words_le() {
+        // A value already < modulus should round-trip identically through both paths.
+        let words = [0x1122334455667788u64, 0x99aabbccddeeff00, 0, 0];
+        let via_raw = Bn254::from_reduced_raw_words(words).from_montgomery_raw();
+        let via_normal = Bn254::from_words_le(words);
+        assert_eq!(via_raw, via_normal);
     }
 }

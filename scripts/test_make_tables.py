@@ -9,6 +9,10 @@ from scripts import make_tables
 ROOT = Path(__file__).resolve().parents[1]
 ROUND_SOURCE = ROOT / "round-numbers-overview.txt"
 MANIFEST = ROOT / "benchmark-manifest.csv"
+# Independent of make_tables.EXPECTED_REPETITIONS (100 in production) so the
+# fixture stays small and tests stay fast; the validation logic is generic
+# over the repetition count either way.
+TEST_REPETITIONS = 5
 
 
 class MakeTablesTests(unittest.TestCase):
@@ -20,7 +24,7 @@ class MakeTablesTests(unittest.TestCase):
     def write_csv(self, directory, mutate=None):
         rows = []
         for case_index, (key, expected) in enumerate(self.expected.items()):
-            for rep in range(5):
+            for rep in range(TEST_REPETITIONS):
                 rows.append(
                     {
                         "construction": key.construction,
@@ -73,31 +77,35 @@ class MakeTablesTests(unittest.TestCase):
         }
         self.assertEqual(manifest, derived)
 
-    def test_valid_csv_generates_three_tables_and_pair_suffixes(self):
+    def test_valid_csv_generates_four_tables_and_pair_suffixes(self):
         with tempfile.TemporaryDirectory() as directory:
             input_path = self.write_csv(directory)
-            loaded = make_tables.load_csv(input_path, self.expected)
+            loaded = make_tables.load_csv(
+                input_path, self.expected, expected_repetitions=TEST_REPETITIONS
+            )
             self.assertEqual([], loaded.issues)
             latex = make_tables.generate_document(
                 input_path, ROUND_SOURCE, self.source, loaded
             )
-        self.assertEqual(3, latex.count(r"\begin{table}[htb]"))
+        self.assertEqual(4, latex.count(r"\begin{table}[htb]"))
         self.assertNotIn(r"\textit{Type", latex)
         self.assertIn(r"\begin{tabular}{l|S", latex)
         self.assertIn(r"@{}l|S", latex)
-        self.assertIn(r"\multicolumn{4}{|c}{BLS12-381}", latex)
-        self.assertIn(r"\multicolumn{2}{|c}{\textemdash}", latex)
-        self.assertIn("XHash8", latex)
-        self.assertIn("XHash24", latex)
+        self.assertIn(r"\multicolumn{4}{c}{BLS12-381}", latex)
+        self.assertIn(r"\multicolumn{2}{c}{\textemdash}", latex)
+        self.assertNotIn("|c}", latex)
+        self.assertNotIn("||", latex)
+        self.assertIn(r"\xhasheight", latex)
+        self.assertIn(r"\xhashtwentyfour", latex)
         self.assertIn(r"\,(\num{", latex)
         self.assertIn(
             "the original round count data is given in parentheses.", latex
         )
         self.assertNotIn("runtime at the designers' original round count", latex)
         self.assertIn("Benchmark provenance: cpu: test fixture", latex)
-        self.assertIn(r"output-decimal-marker={,}", latex)
+        self.assertRegex(latex, r"\$t=3\$ \(\\si\{\\(nano|micro)\\second\}\)")
 
-    def test_rows_are_sorted_by_the_first_data_column(self):
+    def test_rows_are_sorted_slowest_first(self):
         def mutate(rows):
             for row in rows:
                 if (
@@ -105,20 +113,26 @@ class MakeTablesTests(unittest.TestCase):
                     and row["field"] == "bls12_381"
                     and row["t"] == "3"
                 ):
-                    row["total_ns"] = str(100 + int(row["rep"]))
+                    row["total_ns"] = str(10 * (9_000_000 + int(row["rep"])))
 
         with tempfile.TemporaryDirectory() as directory:
             input_path = self.write_csv(directory, mutate)
-            loaded = make_tables.load_csv(input_path, self.expected)
+            loaded = make_tables.load_csv(
+                input_path, self.expected, expected_repetitions=TEST_REPETITIONS
+            )
             latex = make_tables.generate_document(
                 input_path, ROUND_SOURCE, self.source, loaded
             )
         first_table = latex.split(r"\end{table}", 1)[0]
-        self.assertLess(first_table.index("Poseidon &"), first_table.index("GMiMCHash &"))
+        self.assertLess(
+            first_table.index(r"\poseidon &"), first_table.index(r"\gmimchash &")
+        )
 
     def test_excluded_monolith_cells_are_empty_without_warnings(self):
         with tempfile.TemporaryDirectory() as directory:
-            loaded = make_tables.load_csv(self.write_csv(directory), self.expected)
+            loaded = make_tables.load_csv(
+                self.write_csv(directory), self.expected, expected_repetitions=TEST_REPETITIONS
+            )
         self.assertFalse(any("monolith/-/koalabear" in issue for issue in loaded.issues))
         cell = self.source[("monolith", "koalabear", 16)]
         rendered = make_tables.latex_cell(cell, "", loaded.measurements, 1000.0, 2)
@@ -134,7 +148,11 @@ class MakeTablesTests(unittest.TestCase):
             rows.append(extra)
 
         with tempfile.TemporaryDirectory() as directory:
-            loaded = make_tables.load_csv(self.write_csv(directory, mutate), self.expected)
+            loaded = make_tables.load_csv(
+                self.write_csv(directory, mutate),
+                self.expected,
+                expected_repetitions=TEST_REPETITIONS,
+            )
         issues = "\n".join(loaded.issues)
         self.assertIn("wrong rounds", issues)
         self.assertIn("duplicate rep", issues)

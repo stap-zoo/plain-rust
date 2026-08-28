@@ -1,0 +1,8 @@
+# ark-ff's "asm" feature (enabled in Cargo.toml) only compiles in its hand-written
+# Montgomery-multiplication assembly for BN254/BLS12-381 field arithmetic when the
+# target additionally has the BMI2/ADX instruction set extensions enabled; the default
+# x86-64 baseline does not turn these on. Both extensions have shipped since Intel
+# Haswell (2013) and AMD Zen (2017), so this is safe on any reasonably modern x86_64
+# CPU but will make the resulting binary crash with SIGILL on older x86_64 hardware.
+[target.'cfg(target_arch = "x86_64")']
+rustflags = ["-C", "target-feature=+bmi2,+adx"]

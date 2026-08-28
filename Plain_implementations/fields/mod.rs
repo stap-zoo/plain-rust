@@ -98,6 +98,40 @@ pub trait PrimeFieldWords: PrimeFieldExt {
     }
 }
 
+/// Exposes a field's internal Montgomery-domain representation directly, for
+/// constructions (like Skyscraper) that are specified to operate on that raw
+/// representation rather than on canonical field values.
+///
+/// A value `v` is normally stored internally as `v*R mod p` (Montgomery form) and
+/// every public operation transparently cancels the `R` factor. `into_montgomery_raw`
+/// / `from_montgomery_raw` deliberately break that abstraction: they reinterpret a
+/// value's raw limbs as *already being* the canonical integer (skipping the
+/// "multiply by R" conversion), so that ordinary field multiplication on such values
+/// yields `a*b*R^-1 mod p` -- i.e. every multiply carries its own free Montgomery
+/// reduction, with no separate `* R^-1` correction required. This is only sound
+/// for backends that store elements in true Montgomery form and expose it, which is
+/// why this is a separate, non-default trait rather than part of `PrimeFieldWords`.
+pub trait PrimeFieldMontgomery: PrimeFieldWords {
+    /// Reinterpret this normally-encoded value as its own raw Montgomery-domain
+    /// representation (i.e. treat its canonical integer as if it were already
+    /// stored without the `* R` scaling).
+    fn into_montgomery_raw(self) -> Self;
+
+    /// Inverse of `into_montgomery_raw`: reinterpret a raw-domain value (or the
+    /// result of arithmetic performed on raw-domain values) back into normal,
+    /// canonically-encoded form.
+    fn from_montgomery_raw(self) -> Self;
+
+    /// Read this raw-domain value's limbs directly, with no conversion.
+    fn raw_words(&self) -> [u64; 4];
+
+    /// Construct a raw-domain value directly from limbs that may exceed the
+    /// modulus, reducing via cheap conditional subtraction -- not a full
+    /// Montgomery/BigUint reduction, since the input is at most a few multiples
+    /// of the modulus.
+    fn from_reduced_raw_words(words: [u64; 4]) -> Self;
+}
+
 pub(crate) fn biguint_from_limbs_le(limbs: &[u64]) -> BigUint {
     let mut value = BigUint::zero();
     for limb in limbs.iter().rev() {

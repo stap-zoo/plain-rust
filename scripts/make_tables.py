@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate publication benchmark CSV and generate the three LaTeX tables."""
+"""Validate publication benchmark CSV and generate the four LaTeX tables."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 
+EXPECTED_REPETITIONS = 100
 CSV_COLUMNS = (
     "construction",
     "variant",
@@ -25,22 +26,25 @@ CSV_COLUMNS = (
     "rep",
     "total_ns",
 )
-FIELDS_LARGE = (
+FIELDS_BLS_BN254 = (
     ("bls12_381", 3, "BLS12-381", "3"),
     ("bls12_381", 4, "BLS12-381", "4"),
     ("bn254", 3, "BN254", "3"),
     ("bn254", 4, "BN254", "4"),
+)
+FIELDS_GOLDILOCKS_MERSENNE31 = (
     ("goldilocks", 8, "Goldilocks", "8"),
     ("goldilocks", 12, "Goldilocks", "12"),
-)
-FIELDS_SMALL = (
     ("mersenne31", 16, "Mersenne31", "16"),
     ("mersenne31", 24, "Mersenne31", "24"),
+)
+FIELDS_KOALABEAR_BABYBEAR = (
     ("koalabear", 16, "KoalaBear", "16"),
     ("koalabear", 24, "KoalaBear", "24"),
     ("babybear", 16, "BabyBear", "16"),
     ("babybear", 24, "BabyBear", "24"),
 )
+ALL_FIELDS = FIELDS_BLS_BN254 + FIELDS_GOLDILOCKS_MERSENNE31 + FIELDS_KOALABEAR_BABYBEAR
 
 CONSTRUCTION_KEYS = {
     "GMiMCHash": "gmimc",
@@ -62,23 +66,29 @@ CONSTRUCTION_KEYS = {
     "pSquare-Hash": "psquarehash",
 }
 DISPLAY_NAMES = {
-    "gmimc": "GMiMCHash",
-    "gmimc2": "GMiMCHash2",
-    "poseidon": "Poseidon",
-    "poseidon2": "Poseidon2",
-    "neptune": "Neptune",
-    "psquarehash": "pSquare-Hash",
-    "rescue_prime": "Rescue-Prime",
-    "anemoi": "Anemoi",
-    "griffin": "Griffin",
-    "arion": "Arion",
-    "grendel": "Grendel",
-    "xhash": "XHash",
-    "reinforced_concrete": "Reinforced Concrete",
-    "skyscraper": "Skyscraper",
-    "monolith": "Monolith",
-    "polocolo": "Polocolo",
-    "tip4p": "Tip4'",
+    "gmimc": r"\gmimchash",
+    "gmimc2": r"\gmimchashtwo",
+    "poseidon": r"\poseidon",
+    "poseidon2": r"\poseidontwo",
+    "neptune": r"\neptune",
+    "psquarehash": r"\psquarehash",
+    "rescue_prime": r"\rescueprime",
+    "anemoi": r"\anemoi",
+    "griffin": r"\griffin",
+    "arion": r"\arion",
+    "grendel": r"\grendel",
+    "xhash": r"\xhash",
+    "reinforced_concrete": r"\reinforcedc",
+    "skyscraper": r"\skyscraper",
+    "monolith": r"\monolith",
+    "polocolo": r"\polocolo",
+    "tip4p": r"\tipfourprime",
+}
+VARIANT_DISPLAY_NAMES = {
+    "XHash8": r"\xhasheight",
+    "XHash12": r"\xhashtwelve",
+    "XHash16": r"\xhashsixteen",
+    "XHash24": r"\xhashtwentyfour",
 }
 CONSTRUCTIONS = (
     "gmimc",
@@ -245,7 +255,7 @@ def parse_round_source(path: Path) -> dict[tuple[str, str, int], SourceCell]:
             index += 1
     if tables != 2:
         raise ValueError(f"expected two round-number tables, found {tables}")
-    expected_count = len(CONSTRUCTION_KEYS) * (len(FIELDS_LARGE) + len(FIELDS_SMALL))
+    expected_count = len(CONSTRUCTION_KEYS) * len(ALL_FIELDS)
     if len(cells) != expected_count:
         raise ValueError(f"expected {expected_count} round-source cells, found {len(cells)}")
     return cells
@@ -301,7 +311,11 @@ def parse_optional_t(raw: str) -> int | None:
     return value
 
 
-def load_csv(path: Path, expected: dict[CaseKey, Expected]) -> LoadedCsv:
+def load_csv(
+    path: Path,
+    expected: dict[CaseKey, Expected],
+    expected_repetitions: int = EXPECTED_REPETITIONS,
+) -> LoadedCsv:
     preamble: list[str] = []
     data_lines: list[str] = []
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -376,10 +390,11 @@ def load_csv(path: Path, expected: dict[CaseKey, Expected]) -> LoadedCsv:
             issues.append(f"missing CSV case: {key.describe()}")
             continue
         actual_reps = set(repetitions)
-        required_reps = set(range(5))
+        required_reps = set(range(expected_repetitions))
         if actual_reps != required_reps:
             issues.append(
-                f"{key.describe()} has reps {sorted(actual_reps)}; expected [0, 1, 2, 3, 4]"
+                f"{key.describe()} has reps {sorted(actual_reps)}; "
+                f"expected {expected_repetitions} reps [0, ..., {expected_repetitions - 1}]"
             )
             continue
         values = list(repetitions.values())
@@ -407,10 +422,22 @@ def timings_for_cell(
     return current, original
 
 
-def table_variants(construction: str, fields: Sequence[tuple[str, int, str, str]]) -> tuple[str, ...]:
+def table_variants(
+    construction: str,
+    fields: Sequence[tuple[str, int, str, str]],
+    source: dict[tuple[str, str, int], SourceCell],
+) -> tuple[str, ...]:
     if construction != "xhash":
         return ("",)
-    return ("XHash8", "XHash12") if fields is FIELDS_LARGE else ("XHash16", "XHash24")
+    variants: list[str] = []
+    for field, width, _display, _t in fields:
+        cell = source[(construction, field, width)]
+        if cell.undefined:
+            continue
+        for variant in cell_variants(cell):
+            if variant not in variants:
+                variants.append(variant)
+    return tuple(variants) if variants else ("",)
 
 
 def row_is_relevant(
@@ -419,31 +446,6 @@ def row_is_relevant(
     source: dict[tuple[str, str, int], SourceCell],
 ) -> bool:
     return any(not source[(construction, field, width)].undefined for field, width, _, _ in fields)
-
-
-def displayed_values(
-    fields: Sequence[tuple[str, int, str, str]],
-    source: dict[tuple[str, str, int], SourceCell],
-    measurements: dict[CaseKey, Measurement],
-) -> list[float]:
-    values: list[float] = []
-    for construction in CONSTRUCTIONS:
-        if not row_is_relevant(construction, fields, source):
-            continue
-        for variant in table_variants(construction, fields):
-            for field, width, _display, _t in fields:
-                primary, original = timings_for_cell(
-                    construction,
-                    variant or cell_variants(source[(construction, field, width)])[0],
-                    field,
-                    width,
-                    measurements,
-                )
-                if primary is not None:
-                    values.append(primary.median_ns)
-                if original is not None:
-                    values.append(original.median_ns)
-    return values
 
 
 def choose_precision(values: Iterable[float], scale: float) -> int:
@@ -473,33 +475,34 @@ def latex_cell(
     measurements: dict[CaseKey, Measurement],
     scale: float,
     precision: int,
-    left_rule: bool = False,
 ) -> str:
-    alignment = "|c" if left_rule else "c"
     if cell.undefined:
-        return rf"\multicolumn{{2}}{{{alignment}}}{{\textemdash}}"
+        return r"\multicolumn{2}{c}{\textemdash}"
     if (cell.construction, cell.field, cell.t) in EXCLUDED:
-        return rf"\multicolumn{{2}}{{{alignment}}}{{}}"
-    actual_variant = variant or cell_variants(cell)[0]
+        return r"\multicolumn{2}{c}{}"
+    applicable_variants = cell_variants(cell)
+    if variant and variant not in applicable_variants:
+        # This row's variant belongs to a different field's special case
+        # (e.g. XHash8/XHash12 are Goldilocks-only, XHash16/XHash24 are
+        # Mersenne31-only); this cell simply doesn't apply to that variant.
+        return r"\multicolumn{2}{c}{\textemdash}"
+    actual_variant = variant or applicable_variants[0]
     primary, original = timings_for_cell(
         cell.construction, actual_variant, cell.field, cell.t, measurements
     )
     if primary is None:
-        return rf"\multicolumn{{2}}{{{alignment}}}{{\textbf{{?}}}}"
+        return r"\multicolumn{2}{c}{\textbf{?}}"
     primary_text = format_number(primary.median_ns, scale, precision)
     suffix = ""
     if cell.original is not None:
         if original is None:
-            return rf"\multicolumn{{2}}{{{alignment}}}{{\textbf{{?}}}}"
+            return r"\multicolumn{2}{c}{\textbf{?}}"
         suffix = rf"\,(\num{{{format_number(original.median_ns, scale, precision)}}})"
     return f"{primary_text} & {suffix}"
 
 
-def si_setup(unit_kind: str) -> str:
-    common = r"group-separator={\,}, group-minimum-digits=4"
-    if unit_kind == "us":
-        return rf"\sisetup{{{common}, output-decimal-marker={{,}}}}"
-    return rf"\sisetup{{{common}}}"
+def si_setup() -> str:
+    return r"\sisetup{group-separator={\,}, group-minimum-digits=4}"
 
 
 def result_column_spec(precision: int, count: int) -> str:
@@ -509,15 +512,17 @@ def result_column_spec(precision: int, count: int) -> str:
 
 
 def grouped_result_column_spec(
-    precision: int, fields: Sequence[tuple[str, int, str, str]]
+    fields: Sequence[tuple[str, int, str, str]],
+    column_formats: Sequence[tuple[str, float, int, str]],
 ) -> str:
-    one = f"S[table-format=7.{precision}]@{{}}l"
     parts = ["l|"]
     previous_prime = fields[0][2]
-    for index, (_field, _width, prime, _t) in enumerate(fields):
+    for index, ((_field, _width, prime, _t), (_unit_kind, _scale, precision, _unit)) in enumerate(
+        zip(fields, column_formats)
+    ):
         if index and prime != previous_prime:
             parts.append("|")
-        parts.append(one)
+        parts.append(f"S[table-format=7.{precision}]@{{}}l")
         previous_prime = prime
     return "".join(parts)
 
@@ -531,23 +536,49 @@ def sorted_table_rows(
         (construction, variant)
         for construction in CONSTRUCTIONS
         if row_is_relevant(construction, fields, source)
-        for variant in table_variants(construction, fields)
+        for variant in table_variants(construction, fields, source)
     ]
     first_field, first_width, _display, _t = fields[0]
 
-    def first_column_timing(row: tuple[str, str]) -> float:
+    def first_column_timing(row: tuple[str, str]) -> tuple[int, float]:
         construction, variant = row
         cell = source[(construction, first_field, first_width)]
         actual_variant = variant or cell_variants(cell)[0]
         primary, _original = timings_for_cell(
             construction, actual_variant, first_field, first_width, measurements
         )
-        return math.inf if primary is None else primary.median_ns
+        # Rows with no measurement in the first data column stay last,
+        # regardless of sort direction; defined rows sort slowest-first.
+        return (1, 0.0) if primary is None else (0, -primary.median_ns)
 
     # Python's stable sort retains the source construction order for rows that
     # have no defined measurement in the first data column.
     rows.sort(key=first_column_timing)
     return rows
+
+
+def column_values(
+    field: str,
+    width: int,
+    rows: Sequence[tuple[str, str]],
+    source: dict[tuple[str, str, int], SourceCell],
+    measurements: dict[CaseKey, Measurement],
+) -> list[float]:
+    values: list[float] = []
+    for construction, variant in rows:
+        cell = source[(construction, field, width)]
+        if cell.undefined or (construction, field, width) in EXCLUDED:
+            continue
+        applicable_variants = cell_variants(cell)
+        if variant and variant not in applicable_variants:
+            continue
+        actual_variant = variant or applicable_variants[0]
+        primary, original = timings_for_cell(construction, actual_variant, field, width, measurements)
+        if primary is not None:
+            values.append(primary.median_ns)
+        if original is not None:
+            values.append(original.median_ns)
+    return values
 
 
 def grouped_table(
@@ -558,18 +589,21 @@ def grouped_table(
     caption_prefix: str,
     label: str,
 ) -> str:
-    values = displayed_values(fields, source, measurements)
-    unit_kind, scale, precision, unit = numeric_format(values)
+    rows = sorted_table_rows(fields, source, measurements)
+    column_formats = [
+        numeric_format(column_values(field, width, rows, source, measurements))
+        for field, width, _display, _t in fields
+    ]
     lines = [
         r"\begin{table}[htb]",
         r"\centering",
         r"\begingroup",
         r"\scriptsize",
         r"\setlength{\tabcolsep}{2pt}",
-        si_setup(unit_kind),
-        rf"\caption{{{caption_prefix} Timings are in {unit} and are medians of five repetitions. For cells whose round count was updated, the original round count data is given in parentheses.}}",
+        si_setup(),
+        rf"\caption{{{caption_prefix} Medians of {EXPECTED_REPETITIONS} repetitions; units are given per column. For cells whose round count was updated, the original round count data is given in parentheses.}}",
         rf"\label{{{label}}}",
-        rf"\begin{{tabular}}{{{grouped_result_column_spec(precision, fields)}}}",
+        rf"\begin{{tabular}}{{{grouped_result_column_spec(fields, column_formats)}}}",
         r"\toprule",
     ]
     field_names: list[str] = []
@@ -582,36 +616,33 @@ def grouped_table(
     for display in field_names:
         count = sum(1 for item in fields if item[2] == display)
         span = count * 2
-        first_header.append(rf"\multicolumn{{{span}}}{{|c}}{{{display}}}")
+        first_header.append(rf"\multicolumn{{{span}}}{{c}}{{{display}}}")
         cmidrules.append(rf"\cmidrule(lr){{{column}-{column + span - 1}}}")
         column += span
     lines.append(" & ".join(first_header) + r" \\")
     lines.append("".join(cmidrules))
     second_header = ["Construction"]
-    previous_prime = ""
-    for _field, _width, prime, width in fields:
-        alignment = "|c" if prime != previous_prime else "c"
-        second_header.append(rf"\multicolumn{{2}}{{{alignment}}}{{$t={width}$}}")
-        previous_prime = prime
+    for (_field, _width, _prime, width), (_unit_kind, _scale, _precision, unit) in zip(
+        fields, column_formats
+    ):
+        second_header.append(rf"\multicolumn{{2}}{{c}}{{$t={width}$ ({unit})}}")
     lines.append(" & ".join(second_header) + r" \\")
     lines.append(r"\midrule")
 
-    for construction, variant in sorted_table_rows(fields, source, measurements):
-        label_text = variant or DISPLAY_NAMES[construction]
-        cells = []
-        previous_prime = ""
-        for field, width, prime, _t in fields:
-            cells.append(
-                latex_cell(
-                    source[(construction, field, width)],
-                    variant,
-                    measurements,
-                    scale,
-                    precision,
-                    left_rule=prime != previous_prime,
-                )
+    for construction, variant in rows:
+        label_text = VARIANT_DISPLAY_NAMES.get(variant, variant) if variant else DISPLAY_NAMES[construction]
+        cells = [
+            latex_cell(
+                source[(construction, field, width)],
+                variant,
+                measurements,
+                scale,
+                precision,
             )
-            previous_prime = prime
+            for (field, width, _prime, _t), (_unit_kind, scale, precision, _unit) in zip(
+                fields, column_formats
+            )
+        ]
         lines.append(" & ".join([label_text] + cells) + r" \\")
     lines.extend((r"\bottomrule", r"\end{tabular}", r"\endgroup", r"\end{table}"))
     return "\n".join(lines)
@@ -623,13 +654,13 @@ def plain_table(measurements: dict[CaseKey, Measurement]) -> str:
         for construction, _display, _state, _block in PLAIN
         if (key := CaseKey("plain", construction, "-", None, "single")) in measurements
     ]
-    unit_kind, scale, precision, unit = numeric_format(values)
+    _unit_kind, scale, precision, unit = numeric_format(values)
     lines = [
         r"\begin{table}[htb]",
         r"\centering",
         r"\begingroup",
-        si_setup(unit_kind),
-        rf"\caption{{Plain-hash baseline timings in {unit}, reported as medians of five repetitions. State and block sizes are in bits; Keccak-$f[1600]$ is a permutation and has no fixed block size.}}",
+        si_setup(),
+        rf"\caption{{Plain-hash baseline timings in {unit}, reported as medians of {EXPECTED_REPETITIONS} repetitions. State and block sizes are in bits; Keccak-$f[1600]$ is a permutation and has no fixed block size.}}",
         r"\label{tab:plain-hash-benchmarks}",
         rf"\begin{{tabular}}{{lcc{result_column_spec(precision, 1)[1:]}}}",
         r"\toprule",
@@ -680,18 +711,25 @@ def generate_document(
     sections = [
         provenance_comments(input_path, source_path, loaded),
         grouped_table(
-            FIELDS_LARGE,
+            FIELDS_BLS_BN254,
             source,
             loaded.measurements,
-            caption_prefix="Native permutation timings over 256-bit and 64-bit prime fields.",
-            label="tab:benchmark-large",
+            caption_prefix="Native permutation timings over BLS12-381 and BN254.",
+            label="tab:benchmark-bls-bn254",
         ),
         grouped_table(
-            FIELDS_SMALL,
+            FIELDS_GOLDILOCKS_MERSENNE31,
             source,
             loaded.measurements,
-            caption_prefix="Native permutation timings over 31-bit prime fields.",
-            label="tab:benchmark-small",
+            caption_prefix="Native permutation timings over Goldilocks and Mersenne31.",
+            label="tab:benchmark-goldilocks-mersenne31",
+        ),
+        grouped_table(
+            FIELDS_KOALABEAR_BABYBEAR,
+            source,
+            loaded.measurements,
+            caption_prefix="Native permutation timings over KoalaBear and BabyBear.",
+            label="tab:benchmark-koalabear-babybear",
         ),
         plain_table(loaded.measurements),
     ]

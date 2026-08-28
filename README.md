@@ -7,6 +7,7 @@ It also benchmarks SHA-256, Keccak-f[1600], BLAKE2b, and BLAKE3 compression/perm
 ## Requirements
 
 - A recent stable Rust toolchain
+- An x86_64 CPU with BMI2/ADX (Intel Haswell/2013+, AMD Zen/2017+) — `.cargo/config.toml` unconditionally compiles in ark-ff's assembly field-arithmetic backend for these extensions, and any `cargo build`/`test`/`run` here will crash with SIGILL on older hardware
 - Python 3 for validation and LaTeX table generation
 - Optional: `latexmk`, `booktabs`, and `siunitx` for the standalone PDF
 
@@ -27,7 +28,7 @@ RUSTFLAGS='-C target-cpu=native' cargo build --release
 taskset -c 2 ./target/release/sok-zk-friendly-hash-functions --csv > results.csv
 ```
 
-The harness warms and calibrates every case, then records five repetitions. Its CSV preamble
+The harness warms and calibrates every case, then records 100 repetitions. Its CSV preamble
 captures the CPU, compiler, Git state, release settings, CPU affinity, and available power-state
 information. Replace CPU core `2` with the isolated core selected for the benchmark machine.
 
@@ -48,7 +49,7 @@ python3 scripts/make_tables.py \
     --strict
 ```
 
-The generated file contains the two prime-field benchmark tables and the plain-hash baseline
+The generated file contains the three prime-field benchmark tables and the plain-hash baseline
 table. To compile the standalone preview:
 
 ```bash
@@ -57,5 +58,5 @@ table. To compile the standalone preview:
 ```
 
 The benchmark registry is checked against `benchmark-manifest.csv`. The table generator checks
-that all expected cases have exactly five repetitions and that current/original round pairs match
+that all expected cases have exactly 100 repetitions and that current/original round pairs match
 `round-numbers-overview.txt`.

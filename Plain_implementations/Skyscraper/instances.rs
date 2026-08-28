@@ -592,7 +592,7 @@ const BLS_BASE_RC: [[u64; 4]; 48] = [
 ];
 
 lazy_static! {
-    pub static ref SKYSCRAPER_BN254_2_PARAMS: Arc<SkyscraperParams<Bn254>> = {
+    pub static ref SKYSCRAPER_BN254_2_PARAMS: Arc<SkyscraperParams<Bn254, 2>> = {
         let round_constants: Vec<Vec<Bn254>> = vec![
             vec![
                 f_from_words::<Bn254>(BN_BASE_RC[1]),
@@ -659,9 +659,9 @@ lazy_static! {
                 f_from_words::<Bn254>(BN_BASE_RC[30]),
             ],
         ];
-        Arc::new(SkyscraperParams::new(2, 5, &round_constants))
+        Arc::new(SkyscraperParams::new(5, &round_constants))
     };
-    pub static ref SKYSCRAPER_BN254_3_PARAMS: Arc<SkyscraperParams<Bn254>> = {
+    pub static ref SKYSCRAPER_BN254_3_PARAMS: Arc<SkyscraperParams<Bn254, 3>> = {
         let round_constants: Vec<Vec<Bn254>> = vec![
             vec![
                 f_from_words::<Bn254>(BN_BASE_RC[2]),
@@ -744,9 +744,9 @@ lazy_static! {
                 f_from_words::<Bn254>(BN_BASE_RC[45]),
             ],
         ];
-        Arc::new(SkyscraperParams::new(3, 3, &round_constants))
+        Arc::new(SkyscraperParams::new(3, &round_constants))
     };
-    pub static ref SKYSCRAPER_BLS12_381_2_PARAMS: Arc<SkyscraperParams<Bls12_381>> = {
+    pub static ref SKYSCRAPER_BLS12_381_2_PARAMS: Arc<SkyscraperParams<Bls12_381, 2>> = {
         let round_constants: Vec<Vec<Bls12_381>> = vec![
             vec![
                 f_from_words::<Bls12_381>(BLS_BASE_RC[1]),
@@ -813,9 +813,9 @@ lazy_static! {
                 f_from_words::<Bls12_381>(BLS_BASE_RC[30]),
             ],
         ];
-        Arc::new(SkyscraperParams::new(2, 5, &round_constants))
+        Arc::new(SkyscraperParams::new(5, &round_constants))
     };
-    pub static ref SKYSCRAPER_BLS12_381_3_PARAMS: Arc<SkyscraperParams<Bls12_381>> = {
+    pub static ref SKYSCRAPER_BLS12_381_3_PARAMS: Arc<SkyscraperParams<Bls12_381, 3>> = {
         let round_constants: Vec<Vec<Bls12_381>> = vec![
             vec![
                 f_from_words::<Bls12_381>(BLS_BASE_RC[2]),
@@ -898,6 +898,6 @@ lazy_static! {
                 f_from_words::<Bls12_381>(BLS_BASE_RC[45]),
             ],
         ];
-        Arc::new(SkyscraperParams::new(3, 2, &round_constants))
+        Arc::new(SkyscraperParams::new(2, &round_constants))
     };
 }
