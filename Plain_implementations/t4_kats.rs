@@ -194,10 +194,10 @@ fn neptune_bls12_t4_kat() {
     assert_eq!(
         permutation.permutation(&input()),
         expected(&[
-            "0x5611ca5027464dd7e338fe4388f47a6d76587910d185c7568f6cfb05fb853e12",
-            "0x2d2445b2b98e9ab759170c48f04f47131934ab7c9415088cfcb5ebbc6e8bbaaf",
-            "0x52d8975107e83e0c0d7e408fd45ce23cff4a4b174deb168c74ffac95fece164f",
-            "0x4c2339473ed46f0617fcf42d81e7398b2789ec248080b3a18135cffbadbce4c8"
+            "0x16efa51cbd4b1ae3404e38551d53b132c5deda7eb899e0019ea3b986269742ec",
+            "0x2958b61532cbdd2a0325d69e9d26bf16a50d7753a735dde5263aedfbfdf9b2fd",
+            "0x6d9083403cac3312e2bfa9727a691ce756d13fd10ce675fc77f98511ba70e969",
+            "0x34c90bdc1328ba7458573802927a7418eb4e568a90fc97b4a723e9cafc61603b"
         ])
     );
 }

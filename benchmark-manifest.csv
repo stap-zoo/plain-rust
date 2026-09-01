@@ -47,8 +47,8 @@ poseidon2,,koalabear,16,single,8+20
 poseidon2,,koalabear,24,single,8+23
 poseidon2,,babybear,16,single,8+13
 poseidon2,,babybear,24,single,8+21
-neptune,,bls12_381,4,single,6+68
-neptune,,bn254,4,single,6+68
+neptune,,bls12_381,4,single,6+69
+neptune,,bn254,4,single,6+69
 neptune,,goldilocks,8,single,6+38
 neptune,,goldilocks,12,single,6+42
 psquarehash,,mersenne31,16,single,52
@@ -99,10 +99,8 @@ arion,,bls12_381,3,single,11
 arion,,bls12_381,4,single,10
 arion,,bn254,3,single,11
 arion,,bn254,4,single,10
-grendel,native,bls12_381,4,current,23
-grendel,native,bls12_381,4,original,12
-grendel,native,bn254,4,current,23
-grendel,native,bn254,4,original,12
+grendel,native,bls12_381,3,single,24
+grendel,native,bn254,3,single,24
 xhash,XHash8,goldilocks,12,single,6
 xhash,XHash12,goldilocks,12,single,6
 xhash,XHash16,mersenne31,24,single,6

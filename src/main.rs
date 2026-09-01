@@ -602,7 +602,7 @@ fn add_type1_cases(cases: &mut Vec<Case>) {
         "bls12_381",
         4,
         "single",
-        "6+68",
+        "6+69",
         Neptune::new(&NEPTUNE_BLS12_381_4_PARAMS)
     );
     add_case!(
@@ -612,7 +612,7 @@ fn add_type1_cases(cases: &mut Vec<Case>) {
         "bn254",
         4,
         "single",
-        "6+68",
+        "6+69",
         Neptune::new(&NEPTUNE_BN254_4_PARAMS)
     );
     add_case!(
@@ -1116,40 +1116,20 @@ fn add_type2_cases(cases: &mut Vec<Case>) {
         "grendel",
         "native",
         "bls12_381",
-        4,
-        "current",
-        "23",
-        Grendel::new(&GRENDEL_BLS12_381_4_CURRENT_PARAMS)
-    );
-    add_case!(
-        cases,
-        "grendel",
-        "native",
-        "bls12_381",
-        4,
-        "original",
-        "12",
-        Grendel::new(&GRENDEL_BLS12_381_4_ORIGINAL_PARAMS)
+        3,
+        "single",
+        "24",
+        Grendel::new(&GRENDEL_BLS12_381_3_PARAMS)
     );
     add_case!(
         cases,
         "grendel",
         "native",
         "bn254",
-        4,
-        "current",
-        "23",
-        Grendel::new(&GRENDEL_BN254_4_CURRENT_PARAMS)
-    );
-    add_case!(
-        cases,
-        "grendel",
-        "native",
-        "bn254",
-        4,
-        "original",
-        "12",
-        Grendel::new(&GRENDEL_BN254_4_ORIGINAL_PARAMS)
+        3,
+        "single",
+        "24",
+        Grendel::new(&GRENDEL_BN254_3_PARAMS)
     );
 
     add_case!(

@@ -30,7 +30,7 @@ fn read_nonzero<F: PrimeField>(reader: &mut dyn XofReader) -> F {
 fn derive_t4_params<F: PrimeField>() -> Arc<NeptuneParams<F>> {
     const T: usize = 4;
     const ROUNDS_F: usize = 6;
-    const ROUNDS_P: usize = 68;
+    const ROUNDS_P: usize = 69;
     const ROUNDS: usize = ROUNDS_F + ROUNDS_P;
 
     let modulus = F::modulus();
