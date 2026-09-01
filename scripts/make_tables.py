@@ -109,6 +109,21 @@ CONSTRUCTIONS = (
     "polocolo",
     "tip4p",
 )
+TABLE_GROUPS_BLS_BN254 = (
+    ("gmimc", "gmimc2", "neptune", "poseidon", "poseidon2"),
+    ("anemoi", "arion", "griffin", "rescue_prime"),
+    ("reinforced_concrete", "skyscraper"),
+    ("grendel", "polocolo"),
+)
+TABLE_GROUPS_GOLDILOCKS_MERSENNE31 = (
+    ("gmimc", "gmimc2", "neptune", "poseidon", "poseidon2", "psquarehash"),
+    ("anemoi", "griffin", "rescue_prime", "xhash"),
+    ("monolith", "tip4p"),
+)
+TABLE_GROUPS_KOALABEAR_BABYBEAR = (
+    ("gmimc", "gmimc2", "poseidon", "poseidon2", "psquarehash"),
+    ("anemoi", "rescue_prime"),
+)
 PLAIN = (
     ("sha256_compress", "SHA-256 compression", "256", "512"),
     ("keccak_f1600", r"Keccak-$f[1600]$", "1600", r"\textemdash"),
@@ -445,7 +460,29 @@ def row_is_relevant(
     fields: Sequence[tuple[str, int, str, str]],
     source: dict[tuple[str, str, int], SourceCell],
 ) -> bool:
-    return any(not source[(construction, field, width)].undefined for field, width, _, _ in fields)
+    return any(
+        not source[(construction, field, width)].undefined
+        and (construction, field, width) not in EXCLUDED
+        for field, width, _, _ in fields
+    )
+
+
+def table_row_groups(
+    construction_groups: Sequence[Sequence[str]],
+    fields: Sequence[tuple[str, int, str, str]],
+    source: dict[tuple[str, str, int], SourceCell],
+) -> list[list[tuple[str, str]]]:
+    groups: list[list[tuple[str, str]]] = []
+    for construction_group in construction_groups:
+        rows = [
+            (construction, variant)
+            for construction in construction_group
+            if row_is_relevant(construction, fields, source)
+            for variant in table_variants(construction, fields, source)
+        ]
+        if rows:
+            groups.append(rows)
+    return groups
 
 
 def choose_precision(values: Iterable[float], scale: float) -> int:
@@ -460,7 +497,7 @@ def choose_precision(values: Iterable[float], scale: float) -> int:
 def numeric_format(values: Sequence[float]) -> tuple[str, float, int, str]:
     microseconds = bool(values) and all(value > 1000.0 for value in values)
     scale = 1000.0 if microseconds else 1.0
-    precision = choose_precision(values, scale)
+    precision = 2
     unit = r"\si{\micro\second}" if microseconds else r"\si{\nano\second}"
     return ("us" if microseconds else "ns"), scale, precision, unit
 
@@ -475,28 +512,31 @@ def latex_cell(
     measurements: dict[CaseKey, Measurement],
     scale: float,
     precision: int,
+    *,
+    right_rule: bool = False,
 ) -> str:
+    alignment = "c|" if right_rule else "c"
     if cell.undefined:
-        return r"\multicolumn{2}{c}{\textemdash}"
+        return rf"\multicolumn{{2}}{{{alignment}}}{{\textemdash}}"
     if (cell.construction, cell.field, cell.t) in EXCLUDED:
-        return r"\multicolumn{2}{c}{}"
+        return rf"\multicolumn{{2}}{{{alignment}}}{{}}"
     applicable_variants = cell_variants(cell)
     if variant and variant not in applicable_variants:
         # This row's variant belongs to a different field's special case
         # (e.g. XHash8/XHash12 are Goldilocks-only, XHash16/XHash24 are
         # Mersenne31-only); this cell simply doesn't apply to that variant.
-        return r"\multicolumn{2}{c}{\textemdash}"
+        return rf"\multicolumn{{2}}{{{alignment}}}{{\textemdash}}"
     actual_variant = variant or applicable_variants[0]
     primary, original = timings_for_cell(
         cell.construction, actual_variant, cell.field, cell.t, measurements
     )
     if primary is None:
-        return r"\multicolumn{2}{c}{\textbf{?}}"
+        return rf"\multicolumn{{2}}{{{alignment}}}{{\textbf{{?}}}}"
     primary_text = format_number(primary.median_ns, scale, precision)
     suffix = ""
     if cell.original is not None:
         if original is None:
-            return r"\multicolumn{2}{c}{\textbf{?}}"
+            return rf"\multicolumn{{2}}{{{alignment}}}{{\textbf{{?}}}}"
         suffix = rf"\,(\num{{{format_number(original.median_ns, scale, precision)}}})"
     return f"{primary_text} & {suffix}"
 
@@ -583,34 +623,40 @@ def column_values(
 
 def grouped_table(
     fields: Sequence[tuple[str, int, str, str]],
+    construction_groups: Sequence[Sequence[str]],
     source: dict[tuple[str, str, int], SourceCell],
     measurements: dict[CaseKey, Measurement],
     *,
     caption_prefix: str,
     label: str,
+    multicolumn_first_header: bool = False,
+    duplicate_toprule: bool = False,
 ) -> str:
-    rows = sorted_table_rows(fields, source, measurements)
+    row_groups = table_row_groups(construction_groups, fields, source)
+    rows = [row for group in row_groups for row in group]
     column_formats = [
         numeric_format(column_values(field, width, rows, source, measurements))
         for field, width, _display, _t in fields
     ]
     lines = [
         r"\begin{table}[htb]",
-        r"\centering",
-        r"\begingroup",
-        r"\scriptsize",
-        r"\setlength{\tabcolsep}{2pt}",
-        si_setup(),
-        rf"\caption{{{caption_prefix} Medians of {EXPECTED_REPETITIONS} repetitions; units are given per column. For cells whose round count was updated, the original round count data is given in parentheses.}}",
-        rf"\label{{{label}}}",
-        rf"\begin{{tabular}}{{{grouped_result_column_spec(fields, column_formats)}}}",
-        r"\toprule",
+        r"    \centering",
+        r"    \begingroup",
+        r"    \scriptsize",
+        r"    \setlength{\tabcolsep}{2pt}",
+        "    " + si_setup(),
+        rf"    \caption{{{caption_prefix} Median of {EXPECTED_REPETITIONS} runs, with units given per column. For cells whose round count was updated, the original round count data is given in parentheses.}}",
+        rf"    \label{{{label}}}",
+        rf"    \begin{{tabular}}{{{grouped_result_column_spec(fields, column_formats)}}}",
+        r"        \toprule",
     ]
+    if duplicate_toprule:
+        lines.append(r"        \toprule")
     field_names: list[str] = []
     for _field, _width, display, _t in fields:
         if display not in field_names:
             field_names.append(display)
-    first_header = [""]
+    first_header = [r"\multicolumn{1}{c}{}" if multicolumn_first_header else ""]
     column = 2
     cmidrules: list[str] = []
     for display in field_names:
@@ -619,32 +665,57 @@ def grouped_table(
         first_header.append(rf"\multicolumn{{{span}}}{{c}}{{{display}}}")
         cmidrules.append(rf"\cmidrule(lr){{{column}-{column + span - 1}}}")
         column += span
-    lines.append(" & ".join(first_header) + r" \\")
-    lines.append("".join(cmidrules))
-    second_header = ["Construction"]
+    if multicolumn_first_header:
+        first_header_text = first_header[0] + "& " + " & ".join(first_header[1:])
+    else:
+        first_header_text = " & ".join(first_header)
+    lines.append("        " + first_header_text + r" \\")
+    lines.append("        " + "".join(cmidrules))
+    second_header = [
+        r"\multicolumn{1}{c}{Construction}" if multicolumn_first_header else "Construction"
+    ]
     for (_field, _width, _prime, width), (_unit_kind, _scale, _precision, unit) in zip(
         fields, column_formats
     ):
         second_header.append(rf"\multicolumn{{2}}{{c}}{{$t={width}$ ({unit})}}")
-    lines.append(" & ".join(second_header) + r" \\")
-    lines.append(r"\midrule")
+    lines.append("        " + " & ".join(second_header) + r" \\")
+    lines.extend((r"        \midrule", r"        \midrule", ""))
 
-    for construction, variant in rows:
-        label_text = VARIANT_DISPLAY_NAMES.get(variant, variant) if variant else DISPLAY_NAMES[construction]
-        cells = [
-            latex_cell(
-                source[(construction, field, width)],
-                variant,
-                measurements,
-                scale,
-                precision,
+    for group_index, group in enumerate(row_groups):
+        if group_index:
+            lines.extend(("", r"        \midrule", ""))
+        for construction, variant in group:
+            label_text = (
+                VARIANT_DISPLAY_NAMES.get(variant, variant)
+                if variant
+                else DISPLAY_NAMES[construction]
             )
-            for (field, width, _prime, _t), (_unit_kind, scale, precision, _unit) in zip(
-                fields, column_formats
-            )
-        ]
-        lines.append(" & ".join([label_text] + cells) + r" \\")
-    lines.extend((r"\bottomrule", r"\end{tabular}", r"\endgroup", r"\end{table}"))
+            cells = [
+                latex_cell(
+                    source[(construction, field, width)],
+                    variant,
+                    measurements,
+                    scale,
+                    precision,
+                    right_rule=(field, width) == ("goldilocks", 12),
+                )
+                for (field, width, _prime, _t), (
+                    _unit_kind,
+                    scale,
+                    precision,
+                    _unit,
+                ) in zip(fields, column_formats)
+            ]
+            lines.append("        " + " & ".join([label_text] + cells) + r" \\")
+    lines.extend(
+        (
+            "",
+            r"        \bottomrule",
+            r"    \end{tabular}",
+            r"    \endgroup",
+            r"\end{table}",
+        )
+    )
     return "\n".join(lines)
 
 
@@ -709,31 +780,34 @@ def generate_document(
     loaded: LoadedCsv,
 ) -> str:
     sections = [
-        provenance_comments(input_path, source_path, loaded),
         grouped_table(
             FIELDS_BLS_BN254,
+            TABLE_GROUPS_BLS_BN254,
             source,
             loaded.measurements,
             caption_prefix="Native permutation timings over BLS12-381 and BN254.",
             label="tab:benchmark-bls-bn254",
+            multicolumn_first_header=True,
         ),
         grouped_table(
             FIELDS_GOLDILOCKS_MERSENNE31,
+            TABLE_GROUPS_GOLDILOCKS_MERSENNE31,
             source,
             loaded.measurements,
             caption_prefix="Native permutation timings over Goldilocks and Mersenne31.",
             label="tab:benchmark-goldilocks-mersenne31",
+            duplicate_toprule=True,
         ),
         grouped_table(
             FIELDS_KOALABEAR_BABYBEAR,
+            TABLE_GROUPS_KOALABEAR_BABYBEAR,
             source,
             loaded.measurements,
             caption_prefix="Native permutation timings over KoalaBear and BabyBear.",
             label="tab:benchmark-koalabear-babybear",
         ),
-        plain_table(loaded.measurements),
     ]
-    return "\n\n".join(sections) + "\n"
+    return "\n" + "\n\n".join(sections) + "\n"
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:

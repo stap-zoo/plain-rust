@@ -307,7 +307,7 @@ mod tests {
     #[test]
     fn reference_known_answer_vectors() {
         check_kat(
-            &GRENDEL_BN254_3_PARAMS,
+            &GRENDEL_BN254_3_CURRENT_PARAMS,
             &[
                 "15995791472288294308174169687998331711129185833179527498191054822616746540318",
                 "1277715001056385596364846198202477548633516393666932412963108054529318007059",
@@ -315,7 +315,7 @@ mod tests {
             ],
         );
         check_kat(
-            &GRENDEL_BLS12_381_3_PARAMS,
+            &GRENDEL_BLS12_381_3_CURRENT_PARAMS,
             &[
                 "9434234317712565218121184097139083820371497410578881151920995205442822400521",
                 "24298086792365008571996165896764301399721420572426783449784437920605866399811",
@@ -541,8 +541,10 @@ mod tests {
 
     #[test]
     fn jacobi_and_reference_paths_agree_and_round_trip() {
-        check_paths_and_inverse(&GRENDEL_BN254_3_PARAMS);
-        check_paths_and_inverse(&GRENDEL_BLS12_381_3_PARAMS);
+        check_paths_and_inverse(&GRENDEL_BN254_3_CURRENT_PARAMS);
+        check_paths_and_inverse(&GRENDEL_BN254_3_ORIGINAL_PARAMS);
+        check_paths_and_inverse(&GRENDEL_BLS12_381_3_CURRENT_PARAMS);
+        check_paths_and_inverse(&GRENDEL_BLS12_381_3_ORIGINAL_PARAMS);
         check_paths_and_inverse(&GRENDEL_BN254_4_CURRENT_PARAMS);
         check_paths_and_inverse(&GRENDEL_BN254_4_ORIGINAL_PARAMS);
         check_paths_and_inverse(&GRENDEL_BLS12_381_4_CURRENT_PARAMS);
@@ -568,15 +570,32 @@ mod tests {
     #[test]
     fn derived_alpha_and_round_table_is_pinned() {
         assert_eq!(
-            (GRENDEL_BN254_3_PARAMS.alpha, GRENDEL_BN254_3_PARAMS.rounds),
+            (
+                GRENDEL_BN254_3_CURRENT_PARAMS.alpha,
+                GRENDEL_BN254_3_CURRENT_PARAMS.rounds
+            ),
             (5, 24)
         );
         assert_eq!(
             (
-                GRENDEL_BLS12_381_3_PARAMS.alpha,
-                GRENDEL_BLS12_381_3_PARAMS.rounds
+                GRENDEL_BN254_3_ORIGINAL_PARAMS.alpha,
+                GRENDEL_BN254_3_ORIGINAL_PARAMS.rounds
+            ),
+            (5, 14)
+        );
+        assert_eq!(
+            (
+                GRENDEL_BLS12_381_3_CURRENT_PARAMS.alpha,
+                GRENDEL_BLS12_381_3_CURRENT_PARAMS.rounds
             ),
             (5, 24)
+        );
+        assert_eq!(
+            (
+                GRENDEL_BLS12_381_3_ORIGINAL_PARAMS.alpha,
+                GRENDEL_BLS12_381_3_ORIGINAL_PARAMS.rounds
+            ),
+            (5, 14)
         );
         assert_eq!(
             (
@@ -680,6 +699,14 @@ mod tests {
 
     #[test]
     fn paired_profiles_share_all_non_round_choices() {
+        assert_same_non_round_profile(
+            &GRENDEL_BN254_3_CURRENT_PARAMS,
+            &GRENDEL_BN254_3_ORIGINAL_PARAMS,
+        );
+        assert_same_non_round_profile(
+            &GRENDEL_BLS12_381_3_CURRENT_PARAMS,
+            &GRENDEL_BLS12_381_3_ORIGINAL_PARAMS,
+        );
         assert_same_non_round_profile(
             &GRENDEL_BN254_4_CURRENT_PARAMS,
             &GRENDEL_BN254_4_ORIGINAL_PARAMS,

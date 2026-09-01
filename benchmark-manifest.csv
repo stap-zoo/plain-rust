@@ -99,8 +99,14 @@ arion,,bls12_381,3,single,11
 arion,,bls12_381,4,single,10
 arion,,bn254,3,single,11
 arion,,bn254,4,single,10
-grendel,native,bls12_381,3,single,24
-grendel,native,bn254,3,single,24
+grendel,native,bls12_381,3,current,24
+grendel,native,bls12_381,3,original,14
+grendel,native,bls12_381,4,current,23
+grendel,native,bls12_381,4,original,12
+grendel,native,bn254,3,current,24
+grendel,native,bn254,3,original,14
+grendel,native,bn254,4,current,23
+grendel,native,bn254,4,original,12
 xhash,XHash8,goldilocks,12,single,6
 xhash,XHash12,goldilocks,12,single,6
 xhash,XHash16,mersenne31,24,single,6

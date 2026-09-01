@@ -24,6 +24,14 @@ class MakeTablesTests(unittest.TestCase):
     def write_csv(self, directory, mutate=None):
         rows = []
         for case_index, (key, expected) in enumerate(self.expected.items()):
+            if key.field in {"bls12_381", "bn254"}:
+                timing_ns = 200_000 + case_index * 10
+            elif key.field in {"goldilocks", "mersenne31"}:
+                timing_ns = 200 if key.construction == "monolith" else 500 + case_index * 10
+            elif key.field in {"koalabear", "babybear"}:
+                timing_ns = 20_000 + case_index * 10
+            else:
+                timing_ns = 100 + case_index * 10
             for rep in range(TEST_REPETITIONS):
                 rows.append(
                     {
@@ -35,7 +43,7 @@ class MakeTablesTests(unittest.TestCase):
                         "rounds": expected.rounds,
                         "iters": "10",
                         "rep": str(rep),
-                        "total_ns": str(10 * (2000 + case_index * 10 + rep)),
+                        "total_ns": str(10 * (timing_ns + rep)),
                     }
                 )
         if mutate is not None:
@@ -77,7 +85,7 @@ class MakeTablesTests(unittest.TestCase):
         }
         self.assertEqual(manifest, derived)
 
-    def test_valid_csv_generates_four_tables_and_pair_suffixes(self):
+    def test_valid_csv_matches_reference_table_form_and_pair_suffixes(self):
         with tempfile.TemporaryDirectory() as directory:
             input_path = self.write_csv(directory)
             loaded = make_tables.load_csv(
@@ -87,13 +95,20 @@ class MakeTablesTests(unittest.TestCase):
             latex = make_tables.generate_document(
                 input_path, ROUND_SOURCE, self.source, loaded
             )
-        self.assertEqual(4, latex.count(r"\begin{table}[htb]"))
+        self.assertTrue(latex.startswith("\n\\begin{table}[htb]\n    \\centering"))
+        self.assertEqual(3, latex.count(r"\begin{table}[htb]"))
+        self.assertNotIn("Benchmark provenance", latex)
+        self.assertNotIn("plain-hash-benchmarks", latex)
         self.assertNotIn(r"\textit{Type", latex)
-        self.assertIn(r"\begin{tabular}{l|S", latex)
+        self.assertIn(r"    \begin{tabular}{l|S", latex)
         self.assertIn(r"@{}l|S", latex)
-        self.assertIn(r"\multicolumn{4}{c}{BLS12-381}", latex)
+        self.assertIn(
+            r"        \multicolumn{1}{c}{}& \multicolumn{4}{c}{BLS12-381} & \multicolumn{4}{c}{BN254} \\",
+            latex,
+        )
+        self.assertIn(r"\multicolumn{1}{c}{Construction}", latex)
         self.assertIn(r"\multicolumn{2}{c}{\textemdash}", latex)
-        self.assertNotIn("|c}", latex)
+        self.assertIn(r"\multicolumn{2}{c|}{\textemdash}", latex)
         self.assertNotIn("||", latex)
         self.assertIn(r"\xhasheight", latex)
         self.assertIn(r"\xhashtwentyfour", latex)
@@ -101,11 +116,20 @@ class MakeTablesTests(unittest.TestCase):
         self.assertIn(
             "the original round count data is given in parentheses.", latex
         )
+        self.assertIn("Median of 100 runs, with units given per column.", latex)
+        self.assertNotIn("Medians of 100 repetitions", latex)
         self.assertNotIn("runtime at the designers' original round count", latex)
-        self.assertIn("Benchmark provenance: cpu: test fixture", latex)
-        self.assertRegex(latex, r"\$t=3\$ \(\\si\{\\(nano|micro)\\second\}\)")
+        self.assertIn(r"$t=3$ (\si{\micro\second})", latex)
+        self.assertIn(r"$t=8$ (\si{\nano\second})", latex)
+        self.assertEqual(4, latex.split(r"\grendel &", 1)[1].split(r"\\", 1)[0].count(r"\,(\num{"))
 
-    def test_rows_are_sorted_slowest_first(self):
+        tables = latex.split(r"\begin{table}[htb]")[1:]
+        self.assertEqual(5, tables[0].count(r"\midrule"))
+        self.assertEqual(4, tables[1].count(r"\midrule"))
+        self.assertEqual(3, tables[2].count(r"\midrule"))
+        self.assertIn("        \\toprule\n        \\toprule", tables[1])
+
+    def test_rows_keep_reference_order_independent_of_timings(self):
         def mutate(rows):
             for row in rows:
                 if (
@@ -124,9 +148,23 @@ class MakeTablesTests(unittest.TestCase):
                 input_path, ROUND_SOURCE, self.source, loaded
             )
         first_table = latex.split(r"\end{table}", 1)[0]
-        self.assertLess(
-            first_table.index(r"\poseidon &"), first_table.index(r"\gmimchash &")
-        )
+        expected_order = [
+            r"\gmimchash &",
+            r"\gmimchashtwo &",
+            r"\neptune &",
+            r"\poseidon &",
+            r"\poseidontwo &",
+            r"\anemoi &",
+            r"\arion &",
+            r"\griffin &",
+            r"\rescueprime &",
+            r"\reinforcedc &",
+            r"\skyscraper &",
+            r"\grendel &",
+            r"\polocolo &",
+        ]
+        positions = [first_table.index(row) for row in expected_order]
+        self.assertEqual(positions, sorted(positions))
 
     def test_excluded_monolith_cells_are_empty_without_warnings(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -159,11 +197,10 @@ class MakeTablesTests(unittest.TestCase):
         self.assertIn("extra CSV case", issues)
         self.assertIn("has reps", issues)
 
-    def test_unit_boundary_is_strict_and_precision_avoids_collisions(self):
+    def test_unit_boundary_is_strict_and_reference_precision_is_fixed(self):
         self.assertEqual("ns", make_tables.numeric_format([1000.0])[0])
         self.assertEqual("us", make_tables.numeric_format([1000.0001])[0])
-        precision = make_tables.choose_precision([1000.001, 1000.004], 1000.0)
-        self.assertGreater(precision, 2)
+        self.assertEqual(2, make_tables.numeric_format([1000.001, 1000.004])[2])
 
 
 if __name__ == "__main__":

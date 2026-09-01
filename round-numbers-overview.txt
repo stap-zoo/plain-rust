@@ -23,7 +23,7 @@ Target security level is 128 bits, when used in Sponge mode.
 | Anemoi | — | 20 (14) | — | 20 (14) | 11 | 10 |
 | Griffin | 20 (14) | 20 (11) | 20 (14) | 20 (11) | 8 | 8 |
 | Arion | 11 | 10 | 11 | 10 | — | — |
-| Grendel | 24 | — | 24 | — | — | — |
+| Grendel | 24 (14) | 23 (12) | 24 (14) | 23 (12) | — | — |
 | Reinforced Concrete | 7 | — | 7 | — | — | — |
 | Skyscraper | — | 18 | — | 18 | — | — |
 | Monolith | — | — | — | — | 6 | 6 |

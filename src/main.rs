@@ -1117,9 +1117,39 @@ fn add_type2_cases(cases: &mut Vec<Case>) {
         "native",
         "bls12_381",
         3,
-        "single",
+        "current",
         "24",
-        Grendel::new(&GRENDEL_BLS12_381_3_PARAMS)
+        Grendel::new(&GRENDEL_BLS12_381_3_CURRENT_PARAMS)
+    );
+    add_case!(
+        cases,
+        "grendel",
+        "native",
+        "bls12_381",
+        3,
+        "original",
+        "14",
+        Grendel::new(&GRENDEL_BLS12_381_3_ORIGINAL_PARAMS)
+    );
+    add_case!(
+        cases,
+        "grendel",
+        "native",
+        "bls12_381",
+        4,
+        "current",
+        "23",
+        Grendel::new(&GRENDEL_BLS12_381_4_CURRENT_PARAMS)
+    );
+    add_case!(
+        cases,
+        "grendel",
+        "native",
+        "bls12_381",
+        4,
+        "original",
+        "12",
+        Grendel::new(&GRENDEL_BLS12_381_4_ORIGINAL_PARAMS)
     );
     add_case!(
         cases,
@@ -1127,9 +1157,39 @@ fn add_type2_cases(cases: &mut Vec<Case>) {
         "native",
         "bn254",
         3,
-        "single",
+        "current",
         "24",
-        Grendel::new(&GRENDEL_BN254_3_PARAMS)
+        Grendel::new(&GRENDEL_BN254_3_CURRENT_PARAMS)
+    );
+    add_case!(
+        cases,
+        "grendel",
+        "native",
+        "bn254",
+        3,
+        "original",
+        "14",
+        Grendel::new(&GRENDEL_BN254_3_ORIGINAL_PARAMS)
+    );
+    add_case!(
+        cases,
+        "grendel",
+        "native",
+        "bn254",
+        4,
+        "current",
+        "23",
+        Grendel::new(&GRENDEL_BN254_4_CURRENT_PARAMS)
+    );
+    add_case!(
+        cases,
+        "grendel",
+        "native",
+        "bn254",
+        4,
+        "original",
+        "12",
+        Grendel::new(&GRENDEL_BN254_4_ORIGINAL_PARAMS)
     );
 
     add_case!(

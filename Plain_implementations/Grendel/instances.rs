@@ -35,12 +35,16 @@ fn generate_params<F: PrimeField>(t: usize, alpha: u64, rounds: usize) -> Arc<Gr
 }
 
 lazy_static! {
-    // The BLS12-381 and BN254 benchmark profiles use width three and the same
-    // native exponent as the width-four profiles.
-    pub static ref GRENDEL_BN254_3_PARAMS: Arc<GrendelParams<Bn254>> =
+    // The BLS12-381 and BN254 benchmark profiles use the same native exponent
+    // for both widths. Current and original profiles differ only in rounds.
+    pub static ref GRENDEL_BN254_3_CURRENT_PARAMS: Arc<GrendelParams<Bn254>> =
         generate_params::<Bn254>(3, 5, 24);
-    pub static ref GRENDEL_BLS12_381_3_PARAMS: Arc<GrendelParams<Bls12_381>> =
+    pub static ref GRENDEL_BN254_3_ORIGINAL_PARAMS: Arc<GrendelParams<Bn254>> =
+        generate_params::<Bn254>(3, 5, 14);
+    pub static ref GRENDEL_BLS12_381_3_CURRENT_PARAMS: Arc<GrendelParams<Bls12_381>> =
         generate_params::<Bls12_381>(3, 5, 24);
+    pub static ref GRENDEL_BLS12_381_3_ORIGINAL_PARAMS: Arc<GrendelParams<Bls12_381>> =
+        generate_params::<Bls12_381>(3, 5, 14);
     pub static ref GRENDEL_BN254_4_CURRENT_PARAMS: Arc<GrendelParams<Bn254>> =
         generate_params::<Bn254>(4, 5, 23);
     pub static ref GRENDEL_BN254_4_ORIGINAL_PARAMS: Arc<GrendelParams<Bn254>> =
@@ -66,3 +70,7 @@ lazy_static! {
     pub static ref GRENDEL_KOALABEAR_24_PARAMS: Arc<GrendelParams<KoalaBear>> =
         generate_params::<KoalaBear>(24, 3, 12);
 }
+
+// Preserve the former current-profile names for downstream users.
+pub use GRENDEL_BLS12_381_3_CURRENT_PARAMS as GRENDEL_BLS12_381_3_PARAMS;
+pub use GRENDEL_BN254_3_CURRENT_PARAMS as GRENDEL_BN254_3_PARAMS;

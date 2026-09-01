@@ -49,8 +49,9 @@ python3 scripts/make_tables.py \
     --strict
 ```
 
-The generated file contains the three prime-field benchmark tables and the plain-hash baseline
-table. To compile the standalone preview:
+The generated file contains the three prime-field benchmark tables in publication order. The
+plain-hash baselines remain part of CSV validation but are not rendered. To compile the standalone
+preview:
 
 ```bash
 (cd tables && latexmk -pdf -interaction=nonstopmode -halt-on-error \
